@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "MCP server for Pylon customer support platform",
 	"mcpName": "io.github.JustinBeckwith/pylon-mcp",
-	"packageManager": "pnpm@10.12.1",
+	"packageManager": "pnpm@10.25.0",
 	"main": "dist/index.js",
 	"bin": {
 		"pylon-mcp": "dist/index.js"
