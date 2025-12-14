@@ -13,7 +13,6 @@
 	],
 	"type": "module",
 	"scripts": {
-		"preinstall": "node --experimental-strip-types scripts/check-pnpm.ts",
 		"build": "tsc && chmod 755 dist/index.js",
 		"start": "node dist/index.js",
 		"dev": "tsc --watch",
