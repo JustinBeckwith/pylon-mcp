@@ -1,0 +1,64 @@
+{
+	"name": "pylon-mcp",
+	"version": "1.0.0",
+	"description": "MCP server for Pylon customer support platform",
+	"mcpName": "io.github.JustinBeckwith/pylon-mcp",
+	"packageManager": "pnpm@10.12.1",
+	"main": "dist/index.js",
+	"bin": {
+		"pylon-mcp": "dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"type": "module",
+	"scripts": {
+		"preinstall": "node scripts/check-pnpm.js",
+		"build": "tsc && chmod 755 dist/index.js",
+		"start": "node dist/index.js",
+		"dev": "tsc --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"lint": "biome lint .",
+		"fix": "biome check --write .",
+		"format": "biome format --write .",
+		"validate:mcp": "node scripts/validate-mcp.js",
+		"prepare": "husky"
+	},
+	"keywords": [
+		"mcp",
+		"pylon",
+		"customer-support",
+		"helpdesk"
+	],
+	"author": "Justin Beckwith <justin.beckwith@gmail.com>",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/JustinBeckwith/pylon-mcp.git"
+	},
+	"bugs": {
+		"url": "https://github.com/JustinBeckwith/pylon-mcp/issues"
+	},
+	"homepage": "https://github.com/JustinBeckwith/pylon-mcp#readme",
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.7",
+		"@commitlint/cli": "^20.1.0",
+		"@commitlint/config-conventional": "^20.0.0",
+		"@types/node": "^24.9.1",
+		"@vitest/coverage-v8": "^4.0.3",
+		"ajv": "^8.17.1",
+		"ajv-formats": "^3.0.1",
+		"husky": "^9.1.7",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.2"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.20.2",
+		"zod": "^3.25.76"
+	}
+}

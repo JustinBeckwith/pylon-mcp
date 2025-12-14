@@ -1,0 +1,27 @@
+{
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+	"name": "io.github.JustinBeckwith/pylon-mcp",
+	"description": "MCP server for Pylon customer support platform",
+	"repository": {
+		"url": "https://github.com/JustinBeckwith/pylon-mcp",
+		"source": "github"
+	},
+	"icons": [
+		{
+			"src": "https://raw.githubusercontent.com/JustinBeckwith/pylon-mcp/main/pylon-mcp.png",
+			"mimeType": "image/png",
+			"sizes": ["any"]
+		}
+	],
+	"version": "1.0.0",
+	"packages": [
+		{
+			"registryType": "npm",
+			"identifier": "pylon-mcp",
+			"version": "1.0.0",
+			"transport": {
+				"type": "stdio"
+			}
+		}
+	]
+}
