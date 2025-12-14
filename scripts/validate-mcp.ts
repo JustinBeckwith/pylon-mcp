@@ -1,20 +1,37 @@
 #!/usr/bin/env node
 
 import { readFileSync } from 'node:fs';
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
+import { Ajv, type ErrorObject } from 'ajv';
+import ajvFormats from 'ajv-formats';
+
+const addFormats = ajvFormats as unknown as (ajv: Ajv) => Ajv;
+
+interface PackageJson {
+	name: string;
+	version: string;
+	mcpName?: string;
+}
+
+interface ServerJson {
+	$schema?: string;
+	name: string;
+	version: string;
+	packages?: Array<{
+		version: string;
+	}>;
+}
 
 // Read package.json and server.json
-const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-const server = JSON.parse(readFileSync('server.json', 'utf8'));
+const pkg: PackageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+const server: ServerJson = JSON.parse(readFileSync('server.json', 'utf8'));
 
-const errors = [];
+const errors: string[] = [];
 
 // Validate server.json against official MCP schema
 console.log('Validating server.json against MCP schema...');
 try {
 	const schemaUrl =
-		server.$schema ||
+		server.$schema ??
 		'https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json';
 	const schemaResponse = await fetch(schemaUrl);
 	const schema = await schemaResponse.json();
@@ -24,14 +41,15 @@ try {
 	const validate = ajv.compile(schema);
 	const valid = validate(server);
 
-	if (!valid) {
+	if (!valid && validate.errors) {
 		errors.push('server.json failed schema validation:');
-		for (const err of validate.errors) {
+		for (const err of validate.errors as ErrorObject[]) {
 			errors.push(`  - ${err.instancePath || 'root'}: ${err.message}`);
 		}
 	}
 } catch (e) {
-	console.warn(`⚠️  Could not fetch schema for validation: ${e.message}`);
+	const error = e as Error;
+	console.warn(`⚠️  Could not fetch schema for validation: ${error.message}`);
 	console.warn('   Continuing with basic validation...\n');
 }
 
