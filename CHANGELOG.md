@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/JustinBeckwith/pylon-mcp/compare/pylon-mcp-v1.1.0...pylon-mcp-v1.1.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* prevent context overflow with minimal responses and validation ([#7](https://github.com/JustinBeckwith/pylon-mcp/issues/7)) ([6aba677](https://github.com/JustinBeckwith/pylon-mcp/commit/6aba67761c48010edd9436e630fcc03288b85090))
+
 ## [1.1.0](https://github.com/JustinBeckwith/pylon-mcp/compare/pylon-mcp-v1.0.0...pylon-mcp-v1.1.0) (2025-12-14)
 
 
