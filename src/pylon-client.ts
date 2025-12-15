@@ -1,5 +1,158 @@
 const PYLON_API_BASE = 'https://api.usepylon.com';
 
+// Pylon API allows max 30 days for time range queries
+const MAX_TIME_RANGE_DAYS = 30;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Validates that a time range does not exceed the maximum allowed duration.
+ * @throws Error if the time range exceeds MAX_TIME_RANGE_DAYS
+ */
+function validateTimeRange(startTime: string, endTime: string): void {
+	const start = new Date(startTime);
+	const end = new Date(endTime);
+
+	if (Number.isNaN(start.getTime())) {
+		throw new Error(`Invalid start_time format: ${startTime}. Use RFC3339 format (e.g., 2024-01-01T00:00:00Z)`);
+	}
+	if (Number.isNaN(end.getTime())) {
+		throw new Error(`Invalid end_time format: ${endTime}. Use RFC3339 format (e.g., 2024-01-31T00:00:00Z)`);
+	}
+	if (start >= end) {
+		throw new Error('start_time must be before end_time');
+	}
+
+	const diffDays = (end.getTime() - start.getTime()) / MS_PER_DAY;
+	if (diffDays > MAX_TIME_RANGE_DAYS) {
+		throw new Error(
+			`Time range cannot exceed ${MAX_TIME_RANGE_DAYS} days. Requested: ${diffDays.toFixed(1)} days. Try a shorter range like 28 days.`,
+		);
+	}
+}
+
+/**
+ * Validates time_range operators within a filter object.
+ * @throws Error if any time_range exceeds MAX_TIME_RANGE_DAYS
+ */
+function validateFilterTimeRanges(filter: Record<string, unknown>): void {
+	for (const [fieldName, fieldValue] of Object.entries(filter)) {
+		if (
+			typeof fieldValue === 'object' &&
+			fieldValue !== null &&
+			!Array.isArray(fieldValue)
+		) {
+			const fieldObj = fieldValue as Record<string, unknown>;
+			if (fieldObj['time_range']) {
+				const timeRange = fieldObj['time_range'] as {
+					start?: string;
+					end?: string;
+				};
+				if (timeRange.start && timeRange.end) {
+					try {
+						validateTimeRange(timeRange.start, timeRange.end);
+					} catch (error) {
+						throw new Error(
+							`Invalid time_range for ${fieldName}: ${(error as Error).message}`,
+						);
+					}
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Valid operators for each field type in Pylon filters.
+ * The LLM sometimes hallucinates operators (e.g., "gte" instead of "time_is_after"),
+ * so we need to validate and only pass through recognized operators.
+ */
+const VALID_OPERATORS: Record<string, Set<string>> = {
+	// Time fields
+	created_at: new Set(['time_is_after', 'time_is_before', 'time_range']),
+	resolved_at: new Set(['time_is_after', 'time_is_before', 'time_range']),
+	latest_message_activity_at: new Set(['time_is_after', 'time_is_before', 'time_range']),
+
+	// String search fields (body_html is NOT supported by Pylon API)
+	title: new Set(['string_contains', 'string_does_not_contain']),
+
+	// ID fields
+	id: new Set(['equals', 'in', 'not_in']),
+	account_id: new Set(['equals', 'in', 'not_in', 'is_set', 'is_unset']),
+	requester_id: new Set(['equals', 'in', 'not_in', 'is_set', 'is_unset']),
+	assignee_id: new Set(['equals', 'in', 'not_in', 'is_set', 'is_unset']),
+	team_id: new Set(['equals', 'in', 'not_in', 'is_set', 'is_unset']),
+	ticket_form_id: new Set(['equals', 'in', 'not_in', 'is_set', 'is_unset']),
+	follower_user_id: new Set(['equals', 'in', 'not_in']),
+	follower_contact_id: new Set(['equals', 'in', 'not_in']),
+
+	// Enum/state fields
+	state: new Set(['equals', 'in', 'not_in']),
+	issue_type: new Set(['equals', 'in', 'not_in']),
+
+	// Tag fields
+	tags: new Set(['contains', 'does_not_contain', 'in', 'not_in']),
+
+	// Account-specific fields
+	domains: new Set(['contains', 'does_not_contain']),
+	name: new Set(['equals', 'string_contains']),
+	external_ids: new Set(['equals', 'in', 'not_in', 'is_set', 'is_unset']),
+
+	// Contact-specific fields
+	email: new Set(['equals', 'string_contains', 'in', 'not_in']),
+};
+
+/**
+ * Recursively cleans a filter object by:
+ * 1. Removing empty objects and undefined/null values
+ * 2. Only keeping valid operators for each field
+ * This prevents sending invalid filters to the Pylon API.
+ */
+function cleanFilter(
+	obj: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+	const result: Record<string, unknown> = {};
+
+	for (const [fieldName, fieldValue] of Object.entries(obj)) {
+		if (fieldValue === undefined || fieldValue === null) {
+			continue;
+		}
+
+		if (typeof fieldValue === 'object' && !Array.isArray(fieldValue)) {
+			const fieldObj = fieldValue as Record<string, unknown>;
+			const validOperators = VALID_OPERATORS[fieldName];
+
+			if (validOperators) {
+				// This is a known field - filter to only valid operators
+				const cleanedOperators: Record<string, unknown> = {};
+				for (const [op, opValue] of Object.entries(fieldObj)) {
+					if (validOperators.has(op) && opValue !== undefined && opValue !== null) {
+						// For time_range, recursively clean but keep structure
+						if (op === 'time_range' && typeof opValue === 'object') {
+							cleanedOperators[op] = opValue;
+						} else {
+							cleanedOperators[op] = opValue;
+						}
+					}
+					// Silently drop invalid operators to avoid API errors
+				}
+				if (Object.keys(cleanedOperators).length > 0) {
+					result[fieldName] = cleanedOperators;
+				}
+			} else {
+				// Unknown field - recursively clean but keep it
+				const cleaned = cleanFilter(fieldObj);
+				if (cleaned && Object.keys(cleaned).length > 0) {
+					result[fieldName] = cleaned;
+				}
+			}
+		} else {
+			result[fieldName] = fieldValue;
+		}
+	}
+
+	return Object.keys(result).length > 0 ? result : undefined;
+}
+
 export interface PylonConfig {
 	apiToken: string;
 }
@@ -199,11 +352,12 @@ export class PylonClient {
 		filter: object,
 		params?: PaginationParams,
 	): Promise<PaginatedResponse<Account>> {
+		const cleanedFilter = cleanFilter(filter as Record<string, unknown>);
 		return this.request<PaginatedResponse<Account>>(
 			'POST',
 			'/accounts/search',
 			{
-				filter,
+				filter: cleanedFilter ?? {},
 				limit: params?.limit,
 				cursor: params?.cursor,
 			},
@@ -258,11 +412,12 @@ export class PylonClient {
 		filter: object,
 		params?: PaginationParams,
 	): Promise<PaginatedResponse<Contact>> {
+		const cleanedFilter = cleanFilter(filter as Record<string, unknown>);
 		return this.request<PaginatedResponse<Contact>>(
 			'POST',
 			'/contacts/search',
 			{
-				filter,
+				filter: cleanedFilter ?? {},
 				limit: params?.limit,
 				cursor: params?.cursor,
 			},
@@ -273,10 +428,14 @@ export class PylonClient {
 	async listIssues(
 		startTime: string,
 		endTime: string,
+		params?: PaginationParams,
 	): Promise<PaginatedResponse<Issue>> {
+		validateTimeRange(startTime, endTime);
 		const searchParams = new URLSearchParams();
 		searchParams.set('start_time', startTime);
 		searchParams.set('end_time', endTime);
+		if (params?.limit) searchParams.set('limit', params.limit.toString());
+		if (params?.cursor) searchParams.set('cursor', params.cursor);
 		return this.request<PaginatedResponse<Issue>>(
 			'GET',
 			`/issues?${searchParams.toString()}`,
@@ -331,8 +490,16 @@ export class PylonClient {
 		filter: object,
 		params?: PaginationParams,
 	): Promise<PaginatedResponse<Issue>> {
+		const filterRecord = filter as Record<string, unknown>;
+		validateFilterTimeRanges(filterRecord);
+		const cleanedFilter = cleanFilter(filterRecord);
+
+		// Debug: log filters to stderr (shows in Claude Desktop logs)
+		console.error('[pylon-mcp] searchIssues raw:', JSON.stringify(filterRecord));
+		console.error('[pylon-mcp] searchIssues cleaned:', JSON.stringify(cleanedFilter ?? {}));
+
 		return this.request<PaginatedResponse<Issue>>('POST', '/issues/search', {
-			filter,
+			filter: cleanedFilter ?? {},
 			limit: params?.limit,
 			cursor: params?.cursor,
 		});
@@ -349,16 +516,25 @@ export class PylonClient {
 
 	async getIssueFollowers(
 		id: string,
+		params?: PaginationParams,
 	): Promise<PaginatedResponse<{ id: string; email: string }>> {
+		const searchParams = new URLSearchParams();
+		if (params?.limit) searchParams.set('limit', params.limit.toString());
+		if (params?.cursor) searchParams.set('cursor', params.cursor);
+		const query = searchParams.toString();
 		return this.request<PaginatedResponse<{ id: string; email: string }>>(
 			'GET',
-			`/issues/${id}/followers`,
+			`/issues/${id}/followers${query ? `?${query}` : ''}`,
 		);
 	}
 
 	async updateIssueFollowers(
 		id: string,
-		data: { add_user_ids?: string[]; remove_user_ids?: string[] },
+		data: {
+			user_ids?: string[];
+			contact_ids?: string[];
+			operation?: 'add' | 'remove';
+		},
 	): Promise<SingleResponse<{ success: boolean }>> {
 		return this.request<SingleResponse<{ success: boolean }>>(
 			'POST',
