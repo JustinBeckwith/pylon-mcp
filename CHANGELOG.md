@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/JustinBeckwith/pylon-mcp/compare/pylon-mcp-v1.1.1...pylon-mcp-v1.1.2) (2026-04-02)
+
+
+### Bug Fixes
+
+* add explicit node types for TypeScript 6 ([#30](https://github.com/JustinBeckwith/pylon-mcp/issues/30)) ([7af042b](https://github.com/JustinBeckwith/pylon-mcp/commit/7af042b96ad10717c1496e4ef467e13ffd932563))
+
 ## [1.1.1](https://github.com/JustinBeckwith/pylon-mcp/compare/pylon-mcp-v1.1.0...pylon-mcp-v1.1.1) (2025-12-15)
 
 
