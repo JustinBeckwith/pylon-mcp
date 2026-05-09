@@ -108,7 +108,7 @@ Add to your Claude Code MCP settings:
 
 ## Requirements
 
-- Node.js 24+
+- Node.js >=24.11.0 (24 LTS or newer)
 - Pylon API token (Admin access required)
 
 ## License
