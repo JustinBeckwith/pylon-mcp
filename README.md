@@ -86,6 +86,17 @@ Add to your Claude Code MCP settings:
 - `pylon_update_issue` - Update an existing issue
 - `pylon_delete_issue` - Delete an issue
 - `pylon_search_issues` - Search issues with filters
+
+  Pass a non-empty field-keyed filter, for example:
+  ```json
+  {"filter":{"assignee_id":{"equals":"user-uuid"},"state":{"in":["new","waiting_on_you"]}},"limit":25}
+  ```
+  All fields and operators are combined with AND. The server translates these
+  arguments into Pylon's `field`/`operator`/`value` (or `values`) API format.
+  `time_range` takes `{ "start": "...", "end": "..." }`; `is_set` and `is_unset`
+  take booleans (`false` selects the opposite condition). Unknown fields/operators,
+  empty filters, and empty value lists are rejected before sending a request.
+
 - `pylon_snooze_issue` - Snooze an issue until a specific time
 - `pylon_get_issue_followers` - Get issue followers
 - `pylon_update_issue_followers` - Add/remove issue followers
