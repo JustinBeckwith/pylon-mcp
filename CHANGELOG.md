@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/JustinBeckwith/pylon-mcp/compare/pylon-mcp-v1.1.2...pylon-mcp-v1.1.3) (2026-11-27)
+
+
+### Bug Fixes
+
+* serialize issue search filters for the Pylon API ([#84](https://github.com/JustinBeckwith/pylon-mcp/issues/84)) ([a5f8784](https://github.com/JustinBeckwith/pylon-mcp/commit/a5f87846e47dff405626d7a74aec234f9209edf4))
+
 ## [1.1.2](https://github.com/JustinBeckwith/pylon-mcp/compare/pylon-mcp-v1.1.1...pylon-mcp-v1.1.2) (2026-04-02)
 
 
