@@ -1,3 +1,5 @@
+import { IssueSearchFilterSchema } from './issue-search-filter.js';
+
 const PYLON_API_BASE = 'https://api.usepylon.com';
 
 // Pylon API allows max 30 days for time range queries
@@ -490,16 +492,34 @@ export class PylonClient {
 		filter: object,
 		params?: PaginationParams,
 	): Promise<PaginatedResponse<Issue>> {
-		const filterRecord = filter as Record<string, unknown>;
+		const filterRecord = IssueSearchFilterSchema.parse(filter);
 		validateFilterTimeRanges(filterRecord);
-		const cleanedFilter = cleanFilter(filterRecord);
-
-		// Debug: log filters to stderr (shows in Claude Desktop logs)
-		console.error('[pylon-mcp] searchIssues raw:', JSON.stringify(filterRecord));
-		console.error('[pylon-mcp] searchIssues cleaned:', JSON.stringify(cleanedFilter ?? {}));
+		const conditions: object[] = [];
+		for (const [field, operators] of Object.entries(filterRecord)) {
+			if (!operators) continue;
+			for (const [operator, value] of Object.entries(operators)) {
+				if (value === undefined) continue;
+				if (operator === 'is_set' || operator === 'is_unset') {
+					conditions.push({
+						field,
+						operator: value ? operator : operator === 'is_set' ? 'is_unset' : 'is_set',
+					});
+				} else if (operator === 'time_range') {
+					const range = value as { start: string; end: string };
+					conditions.push({ field, operator, values: [range.start, range.end] });
+				} else if (Array.isArray(value)) {
+					conditions.push({ field, operator, values: value });
+				} else {
+					conditions.push({ field, operator, value });
+				}
+			}
+		}
+		const apiFilter = conditions.length === 1
+			? conditions[0]
+			: { operator: 'and', subfilters: conditions };
 
 		return this.request<PaginatedResponse<Issue>>('POST', '/issues/search', {
-			filter: cleanedFilter ?? {},
+			filter: apiFilter,
 			limit: params?.limit,
 			cursor: params?.cursor,
 		});

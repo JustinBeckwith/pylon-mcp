@@ -3,6 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import { IssueSearchFilterSchema } from './issue-search-filter.js';
 import { PylonClient } from './pylon-client.js';
 import {
 	toIssueMinimal,
@@ -757,142 +758,7 @@ server.tool(
 	'pylon_search_issues',
 	'Search issues with filters. Returns compact table. Use pylon_get_issue for details.',
 	{
-		filter: z
-			.object({
-				created_at: z
-					.object({
-						time_is_after: z.string().optional(),
-						time_is_before: z.string().optional(),
-						time_range: z
-							.object({ start: z.string(), end: z.string() })
-							.optional(),
-					})
-					.optional()
-					.describe('Filter by creation time (RFC3339 format)'),
-				account_id: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-						is_set: z.boolean().optional(),
-						is_unset: z.boolean().optional(),
-					})
-					.optional()
-					.describe('Filter by account ID'),
-				requester_id: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-						is_set: z.boolean().optional(),
-						is_unset: z.boolean().optional(),
-					})
-					.optional()
-					.describe('Filter by requester ID'),
-				state: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-					})
-					.optional()
-					.describe(
-						'Filter by state: new, waiting_on_you, waiting_on_customer, on_hold, closed',
-					),
-				tags: z
-					.object({
-						contains: z.string().optional(),
-						does_not_contain: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-					})
-					.optional()
-					.describe('Filter by tags'),
-				title: z
-					.object({
-						string_contains: z.string().optional(),
-						string_does_not_contain: z.string().optional(),
-					})
-					.optional()
-					.describe('Filter by title'),
-				assignee_id: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-						is_set: z.boolean().optional(),
-						is_unset: z.boolean().optional(),
-					})
-					.optional()
-					.describe('Filter by assignee ID'),
-				team_id: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-						is_set: z.boolean().optional(),
-						is_unset: z.boolean().optional(),
-					})
-					.optional()
-					.describe('Filter by team ID'),
-				resolved_at: z
-					.object({
-						time_is_after: z.string().optional(),
-						time_is_before: z.string().optional(),
-						time_range: z
-							.object({ start: z.string(), end: z.string() })
-							.optional(),
-					})
-					.optional()
-					.describe('Filter by resolution time (RFC3339 format)'),
-				latest_message_activity_at: z
-					.object({
-						time_is_after: z.string().optional(),
-						time_is_before: z.string().optional(),
-						time_range: z
-							.object({ start: z.string(), end: z.string() })
-							.optional(),
-					})
-					.optional()
-					.describe('Filter by latest message activity time (RFC3339 format)'),
-				ticket_form_id: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-						is_set: z.boolean().optional(),
-						is_unset: z.boolean().optional(),
-					})
-					.optional()
-					.describe('Filter by ticket form ID'),
-				follower_user_id: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-					})
-					.optional()
-					.describe('Filter by follower user ID'),
-				follower_contact_id: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-					})
-					.optional()
-					.describe('Filter by follower contact ID'),
-				issue_type: z
-					.object({
-						equals: z.string().optional(),
-						in: z.array(z.string()).optional(),
-						not_in: z.array(z.string()).optional(),
-					})
-					.optional()
-					.describe('Filter by issue type: Conversation or Ticket'),
-			})
-			.describe(
-				'Filter object. Each field requires an operator like {state: {equals: "new"}} or {title: {string_contains: "bug"}}',
-			),
+		filter: IssueSearchFilterSchema,
 		limit: z
 			.number()
 			.min(1)
